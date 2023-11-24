@@ -1,2 +1,4 @@
 resources/*.yaml
 resources/*.csv
+
+.idea
