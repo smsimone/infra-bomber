@@ -3,7 +3,7 @@ package blocks
 import (
 	"context"
 	"fmt"
-	"it.toduba/bomber/context_utilities"
+	"it.toduba/bomber/utils"
 	"log"
 	"regexp"
 	"strings"
@@ -14,7 +14,7 @@ type BaseBlock interface {
 }
 
 // ReplacePlaceholders Rimpiazza tutti i placeholder contenuti in s con i valori salvati nel contesto
-func ReplacePlaceholders(ctx context_utilities.ContextValue, s string) string {
+func ReplacePlaceholders(ctx utils.ContextValue, s string) string {
 	placeholders := getPlaceholders(s)
 
 	tmp := s

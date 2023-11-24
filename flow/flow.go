@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"it.toduba/bomber/blocks"
-	"it.toduba/bomber/context_utilities"
 	"it.toduba/bomber/enums"
+	"it.toduba/bomber/utils"
 
 	"gopkg.in/yaml.v2"
 )
@@ -36,7 +36,7 @@ func ParseFromYaml(yamlPath string) (*Flow, error) {
 }
 
 func (f *Flow) Execute(envVars *map[string]string) {
-	ctxVal := context_utilities.ContextValue{
+	ctxVal := utils.ContextValue{
 		BaseUrl:   f.BaseUrl,
 		Variables: &map[string]interface{}{},
 	}
@@ -56,7 +56,7 @@ func (f *Flow) Execute(envVars *map[string]string) {
 	ctx := context.WithValue(context.Background(), enums.Values, ctxVal)
 
 	for _, item := range f.Steps {
-		ctxVal := context_utilities.GetContextValues(ctx)
+		ctxVal := utils.GetContextValues(ctx)
 		ctxVal.StepName = item.Name
 		ctxVal.OutputName = item.Output
 		ctx = context.WithValue(context.Background(), enums.Values, ctxVal)
@@ -66,7 +66,7 @@ func (f *Flow) Execute(envVars *map[string]string) {
 			log.Fatalf("Failed to run step '%v': %v", item.Name, err.Error())
 		}
 		if out != nil {
-			ctxVal := context_utilities.GetContextValues(ctx)
+			ctxVal := utils.GetContextValues(ctx)
 			for k, v := range *out {
 				(*ctxVal.Variables)[k] = v
 			}

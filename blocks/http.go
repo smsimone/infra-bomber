@@ -10,7 +10,7 @@ import (
 	"log"
 	"net/http"
 
-	"it.toduba/bomber/context_utilities"
+	"it.toduba/bomber/utils"
 )
 
 type HttpBlock struct {
@@ -24,7 +24,7 @@ type HttpBlock struct {
 }
 
 func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
-	ctxVal := context_utilities.GetContextValues(ctx)
+	ctxVal := utils.GetContextValues(ctx)
 
 	stepName := ctxVal.StepName
 
@@ -86,7 +86,7 @@ func prepareRequestBody(ctx context.Context, body *map[string]interface{}) map[s
 	sanitized := make(map[string]interface{})
 	for key, val := range *body {
 		if parsed, ok := val.(string); ok {
-			sanitized[key] = ReplacePlaceholders(ctx.Value(enums.Values).(context_utilities.ContextValue), parsed)
+			sanitized[key] = ReplacePlaceholders(ctx.Value(enums.Values).(utils.ContextValue), parsed)
 		} else if parsed, ok := val.(map[string]interface{}); ok {
 			sanitized[key] = prepareRequestBody(ctx, &parsed)
 		} else {
@@ -97,7 +97,7 @@ func prepareRequestBody(ctx context.Context, body *map[string]interface{}) map[s
 }
 
 func getOutput(ctx context.Context, body interface{}, selector *string) *map[string]interface{} {
-	ctxVal := context_utilities.GetContextValues(ctx)
+	ctxVal := utils.GetContextValues(ctx)
 
 	outputName := ctxVal.OutputName
 	stepName := ctxVal.StepName

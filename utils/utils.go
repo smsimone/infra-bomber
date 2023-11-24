@@ -1,4 +1,4 @@
-package context_utilities
+package utils
 
 import (
 	"context"

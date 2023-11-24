@@ -3,7 +3,7 @@ package blocks
 import (
 	"context"
 	"fmt"
-	"it.toduba/bomber/context_utilities"
+	"it.toduba/bomber/utils"
 	"log"
 	"os/exec"
 	"strings"
@@ -17,7 +17,7 @@ type ScriptBlock struct {
 }
 
 func (s *ScriptBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
-	ctxVal := context_utilities.GetContextValues(ctx)
+	ctxVal := utils.GetContextValues(ctx)
 
 	stepName := ctxVal.StepName
 	outputName := ctxVal.OutputName
