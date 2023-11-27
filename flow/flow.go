@@ -35,7 +35,7 @@ func ParseFromYaml(yamlPath string) (*Flow, error) {
 	return flow, nil
 }
 
-func (f *Flow) Execute(envVars *map[string]string) {
+func (f *Flow) Execute(envVars *map[string]string) error {
 	ctxVal := utils.ContextValue{
 		BaseUrl:   f.BaseUrl,
 		Variables: &map[string]interface{}{},
@@ -63,7 +63,8 @@ func (f *Flow) Execute(envVars *map[string]string) {
 
 		out, err := item.Request.Exec(ctx)
 		if err != nil {
-			log.Fatalf("Failed to run step '%v': %v", item.Name, err.Error())
+			log.Printf("Failed to run step '%v': %v", item.Name, err.Error())
+			return err
 		}
 		if out != nil {
 			ctxVal := utils.GetContextValues(ctx)
@@ -73,4 +74,5 @@ func (f *Flow) Execute(envVars *map[string]string) {
 			ctx = context.WithValue(context.Background(), enums.Values, ctxVal)
 		}
 	}
+	return nil
 }

@@ -4,36 +4,32 @@ import (
 	"fmt"
 	"it.toduba/bomber/flow"
 	"log"
-	"sync"
 )
 
 type Queue struct {
-	Tasks          []Task
-	mutex          sync.Mutex
-	currentRunning int
-	MaxExecutions  int
+	Tasks            []Task
+	currentlyRunning int
+	MaxExecutions    int
+	onRunningChange  chan int
 }
 
 type AddProp func(q *Queue)
 
+// Initialize the Queue with some custom props
 func (q *Queue) Initialize(props ...AddProp) {
-	q.mutex = sync.Mutex{}
 	for _, p := range props {
 		p(q)
 	}
+
+	q.onRunningChange = make(chan int, q.MaxExecutions)
 }
 
+// AddTask appends a new task t into the queue
 func (q *Queue) AddTask(t *Task) {
 	q.Tasks = append(q.Tasks, *t)
 }
 
-func (q *Queue) releaseTask() {
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
-
-	q.currentRunning -= 1
-}
-
+// popTask Returns the first task in queue. Returns nil if empty
 func (q *Queue) popTask() *Task {
 	if len(q.Tasks) == 0 {
 		return nil
@@ -51,44 +47,70 @@ func (q *Queue) popTask() *Task {
 	return &t
 }
 
-func (q *Queue) RunNextTask() error {
+// runNextTask pops the first item in the queue and runs it
+func (q *Queue) runNextTask() error {
 	canRun := false
 
 	for !canRun {
-		q.mutex.Lock()
-		func() {
-			defer q.mutex.Unlock()
-			if q.currentRunning < q.MaxExecutions {
-				q.currentRunning += 1
+		select {
+		case <-q.onRunningChange:
+			if q.currentlyRunning < q.MaxExecutions {
+				q.currentlyRunning += 1
+				q.onRunningChange <- q.currentlyRunning
 				canRun = true
+				break
 			}
-		}()
+		}
 	}
 
-	fmt.Printf("Currently running %v jobs", q.currentRunning)
+	fmt.Printf("Currently running %v jobs\n", q.currentlyRunning)
 
 	t := q.popTask()
 	if t == nil {
 		return fmt.Errorf("queue has no tasks in it")
 	}
-	go func(task *Task) {
-		defer q.releaseTask()
 
-		f, err := flow.ParseFromYaml("resources/sample_flow.yaml")
+	go func(task *Task) {
+
+		defer func() {
+			log.Printf("Releasing task")
+			q.currentlyRunning -= 1
+			q.onRunningChange <- q.currentlyRunning
+		}()
+
+		f, err := flow.ParseFromYaml(task.FlowFile)
 		if err != nil {
-			log.Fatalf("Failed to parse flow: %v", err.Error())
+			log.Printf("Failed to parse flow: %v\n", err.Error())
 		}
 
-		f.Execute(&(*task).Input)
+		if err := f.Execute((*task).Input); err != nil {
+			fmt.Printf("Failed to execute task: %v\n", err.Error())
+		}
 	}(t)
+
 	return nil
 }
 
 // Start Starts to execute all tasks
 func (q *Queue) Start() {
+	q.onRunningChange <- -1
 	for len(q.Tasks) > 0 {
-		if err := q.RunNextTask(); err != nil {
-			log.Fatalf("Failed to execute next task: %v", err.Error())
+		if err := q.runNextTask(); err != nil {
+			log.Printf("Failed to execute next task: %v\n", err.Error())
+		}
+	}
+}
+
+// Wait Let the process wait to empty the queue
+func (q *Queue) Wait() {
+	for {
+		select {
+		case <-q.onRunningChange:
+			fmt.Printf("----- Currently there are %v processes\n", q.currentlyRunning)
+			if q.currentlyRunning == 0 {
+				fmt.Printf("------ exiting\n")
+				return
+			}
 		}
 	}
 }

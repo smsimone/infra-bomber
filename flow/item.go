@@ -78,6 +78,17 @@ func convert(m map[interface{}]interface{}) map[string]interface{} {
 		switch v2 := v.(type) {
 		case map[interface{}]interface{}:
 			res[fmt.Sprint(k)] = convert(v2)
+		case []interface{}:
+			var data []map[string]interface{}
+			for _, item := range v2 {
+				switch v3 := item.(type) {
+				case map[interface{}]interface{}:
+					data = append(data, convert(v3))
+				default:
+					log.Fatalf("Invalid type: %+v", v3)
+				}
+			}
+			res[fmt.Sprint(k)] = data
 		default:
 			res[fmt.Sprint(k)] = v
 		}

@@ -35,6 +35,7 @@ func (s *ScriptBlock) Exec(ctx context.Context) (*map[string]interface{}, error)
 	out, err := command.Output()
 	if err != nil {
 		log.Fatalf("[%v] Failed to execute command: %v", stepName, err.Error())
+		return nil, err
 	}
 
 	if outputName == nil {

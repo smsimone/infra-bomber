@@ -35,14 +35,16 @@ func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
 		body := prepareRequestBody(ctx, s.Body)
 		jsonVal, err := json.Marshal(body)
 		if err != nil {
-			log.Fatalf("Failed to sanitize input: %v", err)
+			log.Printf("Failed to sanitize input: %v", err)
+			return nil, err
 		}
 		content = bytes.NewBuffer(jsonVal)
 	}
 
 	req, err := http.NewRequest(s.Method, ReplacePlaceholders(ctxVal, url), content)
 	if err != nil {
-		log.Fatalf("[%v] Failed to build request: %v", stepName, err.Error())
+		log.Printf("[%v] Failed to build request: %v", stepName, err.Error())
+		return nil, err
 	}
 
 	if s.Headers != nil {
@@ -58,15 +60,18 @@ func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
 	}(resp.Body)
 
 	if err != nil {
-		log.Fatalf("[%v] Failed to send http request: %v", stepName, err.Error())
+		log.Printf("[%v] Failed to send http request: %v", stepName, err.Error())
+		return nil, err
 	} else if resp.StatusCode != s.ExpectedStatusCode {
-		log.Fatalf("[%v] Received invalid status code: expected %v - got %v", stepName, s.ExpectedStatusCode, resp.StatusCode)
+		log.Printf("[%v] Received invalid status code: expected %v - got %v", stepName, s.ExpectedStatusCode, resp.StatusCode)
+		return nil, fmt.Errorf("received invalid status code")
 	}
 
 	var j interface{}
 
 	if err := json.NewDecoder(resp.Body).Decode(&j); err != nil {
-		log.Fatalf("[%v] Failed to convert body to json: %v", stepName, err.Error())
+		log.Printf("[%v] Failed to convert body to json: %v", stepName, err.Error())
+		return nil, err
 	} else {
 		log.Printf("[%v] Got response", stepName)
 		if content == nil || s.BodySelector == nil {
@@ -74,8 +79,6 @@ func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
 		}
 		return getOutput(ctx, j, s.BodySelector), nil
 	}
-
-	return nil, nil
 }
 
 func prepareRequestBody(ctx context.Context, body *map[string]interface{}) map[string]interface{} {
@@ -106,7 +109,8 @@ func getOutput(ctx context.Context, body interface{}, selector *string) *map[str
 	if decoded, ok := body.(map[string]interface{}); ok {
 		data = decoded
 	} else {
-		log.Fatalf("[%v] Failed to unmarshal body", stepName)
+		log.Printf("[%v] Failed to unmarshal body", stepName)
+		return nil
 	}
 
 	if selector != nil && outputName != nil {
