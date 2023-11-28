@@ -3,17 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"it.toduba/bomber/queue"
 	"os"
 	"path"
 	"strings"
+
+	"it.toduba/bomber/queue"
 )
 
 type args struct {
-	jobs      int
-	flow      string
 	variables *string
 	limit     *int
+	flow      string
+	jobs      int
 }
 
 func main() {
@@ -37,7 +38,7 @@ func main() {
 	q.Wait()
 }
 
-func getTasks(f args) []queue.Task {
+func getTasks(f args) []queue.BaseTask {
 	var vars []map[string]string
 	if f.variables != nil {
 		vars = ReadInputCsv(*f.variables)
@@ -59,10 +60,10 @@ func getTasks(f args) []queue.Task {
 		files = append(files, f.flow)
 	}
 
-	var tasks []queue.Task
-	if vars == nil || len(vars) == 0 {
+	var tasks []queue.BaseTask
+	if len(vars) == 0 {
 		for _, f := range files {
-			tasks = append(tasks, *queue.NewTask(f, nil))
+			tasks = append(tasks, queue.NewTask(f, nil))
 		}
 	} else {
 		count := 0
@@ -71,7 +72,7 @@ func getTasks(f args) []queue.Task {
 				break
 			}
 			for _, f := range files {
-				tasks = append(tasks, *queue.NewTask(f, &group))
+				tasks = append(tasks, queue.NewTask(f, &group))
 			}
 			count += 1
 		}

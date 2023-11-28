@@ -2,15 +2,14 @@ package queue
 
 import (
 	"fmt"
-	"it.toduba/bomber/flow"
 	"log"
 )
 
 type Queue struct {
-	Tasks            []Task
+	onRunningChange  chan int
+	Tasks            []BaseTask
 	currentlyRunning int
 	MaxExecutions    int
-	onRunningChange  chan int
 }
 
 type AddProp func(q *Queue)
@@ -25,19 +24,19 @@ func (q *Queue) Initialize(props ...AddProp) {
 }
 
 // AddTask appends a new task t into the queue
-func (q *Queue) AddTask(t *Task) {
+func (q *Queue) AddTask(t *BaseTask) {
 	q.Tasks = append(q.Tasks, *t)
 }
 
 // popTask Returns the first task in queue. Returns nil if empty
-func (q *Queue) popTask() *Task {
+func (q *Queue) popTask() *BaseTask {
 	if len(q.Tasks) == 0 {
 		return nil
 	}
 
 	if len(q.Tasks) == 1 {
 		t := q.Tasks[0]
-		q.Tasks = []Task{}
+		q.Tasks = []BaseTask{}
 		return &t
 	}
 
@@ -52,14 +51,11 @@ func (q *Queue) runNextTask() error {
 	canRun := false
 
 	for !canRun {
-		select {
-		case <-q.onRunningChange:
-			if q.currentlyRunning < q.MaxExecutions {
-				q.currentlyRunning += 1
-				q.onRunningChange <- q.currentlyRunning
-				canRun = true
-				break
-			}
+		<-q.onRunningChange
+		if q.currentlyRunning < q.MaxExecutions {
+			q.currentlyRunning += 1
+			q.onRunningChange <- q.currentlyRunning
+			canRun = true
 		}
 	}
 
@@ -70,20 +66,13 @@ func (q *Queue) runNextTask() error {
 		return fmt.Errorf("queue has no tasks in it")
 	}
 
-	go func(task *Task) {
-
+	go func(task *BaseTask) {
 		defer func() {
-			log.Printf("Releasing task")
 			q.currentlyRunning -= 1
 			q.onRunningChange <- q.currentlyRunning
 		}()
 
-		f, err := flow.ParseFromYaml(task.FlowFile)
-		if err != nil {
-			log.Printf("Failed to parse flow: %v\n", err.Error())
-		}
-
-		if err := f.Execute((*task).Input); err != nil {
+		if err := (*task).Execute(); err != nil {
 			fmt.Printf("Failed to execute task: %v\n", err.Error())
 		}
 	}(t)
@@ -104,13 +93,11 @@ func (q *Queue) Start() {
 // Wait Let the process wait to empty the queue
 func (q *Queue) Wait() {
 	for {
-		select {
-		case <-q.onRunningChange:
-			fmt.Printf("----- Currently there are %v processes\n", q.currentlyRunning)
-			if q.currentlyRunning == 0 {
-				fmt.Printf("------ exiting\n")
-				return
-			}
+		<-q.onRunningChange
+		fmt.Printf("----- Currently there are %v processes\n", q.currentlyRunning)
+		if q.currentlyRunning == 0 {
+			fmt.Printf("------ exiting\n")
+			return
 		}
 	}
 }

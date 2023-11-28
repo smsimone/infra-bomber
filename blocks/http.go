@@ -6,21 +6,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"it.toduba/bomber/enums"
 	"log"
 	"net/http"
+
+	"it.toduba/bomber/enums"
 
 	"it.toduba/bomber/utils"
 )
 
 type HttpBlock struct {
 	BaseBlock          `yaml:"-"`
-	Path               string                  `yaml:"path"`
-	Method             string                  `yaml:"method"`
-	ExpectedStatusCode int                     `yaml:"expectedStatusCode"`
 	Body               *map[string]interface{} `yaml:"body"`
 	Headers            *map[string]string      `yaml:"headers"`
 	BodySelector       *string                 `yaml:"bodySelector"`
+	Path               string                  `yaml:"path"`
+	Method             string                  `yaml:"method"`
+	ExpectedStatusCode int                     `yaml:"expectedStatusCode"`
 }
 
 func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
