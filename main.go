@@ -3,19 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strings"
 
 	"it.toduba/bomber/queue"
+	"it.toduba/bomber/utils"
 )
-
-type args struct {
-	variables *string
-	limit     *int
-	flow      string
-	jobs      int
-}
 
 func main() {
 	f := parseFlags()
@@ -23,41 +18,41 @@ func main() {
 	q := queue.Queue{}
 	q.Initialize(
 		func(q *queue.Queue) {
-			q.MaxExecutions = f.jobs
+			q.MaxExecutions = f.Jobs
 		},
 		func(q *queue.Queue) {
-			for _, t := range getTasks(*f) {
+			for _, t := range GetTasks(*f) {
 				q.AddTask(&t)
 			}
 		},
 	)
 
-	fmt.Printf("Should run %v iterations\n", len(q.Tasks))
+	log.Printf("Should run %v iterations\n", len(q.Tasks))
 
 	q.Start()
 	q.Wait()
 }
 
-func getTasks(f args) []queue.BaseTask {
+func GetTasks(f utils.ProgramArgs) []queue.BaseTask {
 	var vars []map[string]string
-	if f.variables != nil {
-		vars = ReadInputCsv(*f.variables)
+	if f.Variables != nil {
+		vars = utils.ReadInputCsv(*f.Variables)
 	}
 
 	var files []string
 
-	if stat, _ := os.Stat(f.flow); stat.IsDir() {
-		if entries, err := os.ReadDir(f.flow); err != nil {
+	if stat, _ := os.Stat(f.Flow); stat.IsDir() {
+		if entries, err := os.ReadDir(f.Flow); err != nil {
 			panic(fmt.Sprintf("Failed to read flow dir: %v", err.Error()))
 		} else {
 			for _, entry := range entries {
 				if strings.HasSuffix(entry.Name(), ".yaml") || strings.HasSuffix(entry.Name(), ".yml") {
-					files = append(files, path.Join(f.flow, entry.Name()))
+					files = append(files, path.Join(f.Flow, entry.Name()))
 				}
 			}
 		}
 	} else {
-		files = append(files, f.flow)
+		files = append(files, f.Flow)
 	}
 
 	var tasks []queue.BaseTask
@@ -68,7 +63,7 @@ func getTasks(f args) []queue.BaseTask {
 	} else {
 		count := 0
 		for _, group := range vars {
-			if *f.limit != -1 && count >= *f.limit {
+			if *f.Limit != -1 && count >= *f.Limit {
 				break
 			}
 			for _, f := range files {
@@ -81,7 +76,7 @@ func getTasks(f args) []queue.BaseTask {
 	return tasks
 }
 
-func parseFlags() *args {
+func parseFlags() *utils.ProgramArgs {
 	jobs := flag.Int("jobs", 10, "Numero di job concorrenti da eseguire")
 	flow := flag.String("flow", "", "Percorso al flusso da eseguire. Se random è true, deve puntare ad una cartella")
 	variables := flag.String("variables", "", "Percorso al file csv contenente le variabili per sostituire i placeholder nel flusso")
@@ -110,10 +105,10 @@ func parseFlags() *args {
 		}
 	}
 
-	return &args{
-		jobs:      *jobs,
-		flow:      *flow,
-		variables: variables,
-		limit:     limit,
+	return &utils.ProgramArgs{
+		Jobs:      *jobs,
+		Flow:      *flow,
+		Variables: variables,
+		Limit:     limit,
 	}
 }

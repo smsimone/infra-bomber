@@ -1,8 +1,8 @@
-package main
+package utils
 
 import (
 	"encoding/csv"
-	"it.toduba/bomber/utils"
+	"log"
 	"os"
 )
 
@@ -26,7 +26,9 @@ func parseData(csvData [][]string) []map[string]string {
 
 func ReadInputCsv(csvFile string) []map[string]string {
 	f, err := os.Open(csvFile)
-	utils.HandleErrFail(err)
+	if err != nil {
+		log.Fatalf("Failed to open variables file: %v", err.Error())
+	}
 
 	defer func(f *os.File) {
 		_ = f.Close()
@@ -34,6 +36,8 @@ func ReadInputCsv(csvFile string) []map[string]string {
 
 	reader := csv.NewReader(f)
 	data, err := reader.ReadAll()
-	utils.HandleErrFail(err)
+	if err != nil {
+		log.Fatalf("failed to read variables file: %v", err.Error())
+	}
 	return parseData(data)
 }

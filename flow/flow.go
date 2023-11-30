@@ -62,7 +62,6 @@ func (f *Flow) Execute(envVars *map[string]string) error {
 
 		out, err := item.Request.Exec(ctx)
 		if !item.CanFail && err != nil {
-			log.Printf("Step %v could fail: %v", item.Name, item.CanFail)
 			log.Printf("Failed to run step '%v': %v", item.Name, err.Error())
 			return err
 		}

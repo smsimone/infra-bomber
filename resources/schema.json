@@ -30,6 +30,31 @@
           "output": {
             "type": "string"
           },
+          "vars": {
+            "description": "Loops this item for each variable defined",
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Path to a file containing the variables. Must be a csv file",
+                "pattern": "^(.*/)([^/]*)\\.csv$"
+              },
+              {
+                "type": "array",
+                "description": "List of objects that defines the variables for this step",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          },
           "can_fail": {
             "type": "boolean",
             "default": false

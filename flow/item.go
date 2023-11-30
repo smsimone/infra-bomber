@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"it.toduba/bomber/utils"
 )
 
 type Item struct {
-	Request BaseBlock `yaml:"request"`
-	Output  *string   `yaml:"output"`
-	Name    string    `yaml:"name"`
-	CanFail bool      `yaml:"can_fail"`
+	Request      BaseBlock           `yaml:"request"`
+	Output       *string             `yaml:"output"`
+	Name         string              `yaml:"name"`
+	variableFile string              `yaml:"-"`
+	Variables    []map[string]string `yaml:"-"`
+	CanFail      bool                `yaml:"can_fail"`
 }
 
 func (i *Item) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -31,6 +35,14 @@ func (i *Item) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		i.CanFail = tmp
 	} else {
 		i.CanFail = false
+	}
+
+	if val, ok := (*generic)["vars"]; ok {
+		tmp, err := parseVariables(val)
+		if err != nil {
+			log.Fatalf("Step %v got error while building: %v", i.Name, err.Error())
+		}
+		i.Variables = *tmp
 	}
 
 	request := (*generic)["request"].(map[interface{}]interface{})
@@ -66,6 +78,26 @@ func (i *Item) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	i.Request = block
 
 	return nil
+}
+
+func parseVariables(vars interface{}) (*[]map[string]string, error) {
+	switch content := vars.(type) {
+	case string:
+		filepath := content
+		data := utils.ReadInputCsv(filepath)
+		return &data, nil
+	case []map[interface{}]interface{}:
+		data := []map[string]string{}
+		for _, item := range content {
+			for k, v := range item {
+				tmp := map[string]string{fmt.Sprint(k): fmt.Sprint(v)}
+				data = append(data, tmp)
+			}
+		}
+		return &data, nil
+	default:
+		return nil, fmt.Errorf("invalid vars field: %+v", content)
+	}
 }
 
 func convertToObj(data map[interface{}]interface{}, out interface{}) error {
