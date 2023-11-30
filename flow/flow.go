@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"it.toduba/bomber/blocks"
 	"it.toduba/bomber/enums"
 	"it.toduba/bomber/utils"
 
@@ -49,7 +48,7 @@ func (f *Flow) Execute(envVars *map[string]string) error {
 
 	if f.Environment != nil {
 		for k, v := range *f.Environment {
-			(*ctxVal.Variables)[k] = blocks.ReplacePlaceholders(ctxVal, v)
+			(*ctxVal.Variables)[k] = ReplacePlaceholders(ctxVal, v)
 		}
 	}
 
@@ -62,7 +61,8 @@ func (f *Flow) Execute(envVars *map[string]string) error {
 		ctx = context.WithValue(context.Background(), enums.Values, ctxVal)
 
 		out, err := item.Request.Exec(ctx)
-		if err != nil {
+		if !item.CanFail && err != nil {
+			log.Printf("Step %v could fail: %v", item.Name, item.CanFail)
 			log.Printf("Failed to run step '%v': %v", item.Name, err.Error())
 			return err
 		}

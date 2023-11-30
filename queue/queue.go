@@ -59,7 +59,7 @@ func (q *Queue) runNextTask() error {
 		}
 	}
 
-	fmt.Printf("Currently running %v jobs\n", q.currentlyRunning)
+	log.Printf("Currently running %v jobs\n", q.currentlyRunning)
 
 	t := q.popTask()
 	if t == nil {
@@ -72,9 +72,7 @@ func (q *Queue) runNextTask() error {
 			q.onRunningChange <- q.currentlyRunning
 		}()
 
-		if err := (*task).Execute(); err != nil {
-			fmt.Printf("Failed to execute task: %v\n", err.Error())
-		}
+		_ = (*task).Execute()
 	}(t)
 
 	return nil
@@ -94,9 +92,8 @@ func (q *Queue) Start() {
 func (q *Queue) Wait() {
 	for {
 		<-q.onRunningChange
-		fmt.Printf("----- Currently there are %v processes\n", q.currentlyRunning)
+		log.Printf("----- Currently there are %v processes\n", q.currentlyRunning)
 		if q.currentlyRunning == 0 {
-			fmt.Printf("------ exiting\n")
 			return
 		}
 	}

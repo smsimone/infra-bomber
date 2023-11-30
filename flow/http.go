@@ -1,4 +1,4 @@
-package blocks
+package flow
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
 
 	"it.toduba/bomber/enums"
 
@@ -15,13 +16,13 @@ import (
 )
 
 type HttpBlock struct {
-	BaseBlock          `yaml:"-"`
-	Body               *map[string]interface{} `yaml:"body"`
-	Headers            *map[string]string      `yaml:"headers"`
-	BodySelector       *string                 `yaml:"bodySelector"`
-	Path               string                  `yaml:"path"`
-	Method             string                  `yaml:"method"`
-	ExpectedStatusCode int                     `yaml:"expectedStatusCode"`
+	BaseBlock           `yaml:"-"`
+	Body                *map[string]interface{} `yaml:"body"`
+	Headers             *map[string]string      `yaml:"headers"`
+	BodySelector        *string                 `yaml:"bodySelector"`
+	Path                string                  `yaml:"path"`
+	Method              string                  `yaml:"method"`
+	ExpectedStatusCodes []int                   `yaml:"expectedStatusCodes"`
 }
 
 func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
@@ -63,8 +64,8 @@ func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
 	if err != nil {
 		log.Printf("[%v] Failed to send http request: %v", stepName, err.Error())
 		return nil, err
-	} else if resp.StatusCode != s.ExpectedStatusCode {
-		log.Printf("[%v] Received invalid status code: expected %v - got %v", stepName, s.ExpectedStatusCode, resp.StatusCode)
+	} else if !slices.Contains(s.ExpectedStatusCodes, resp.StatusCode) {
+		log.Printf("[%v] Received invalid status code: expected %v - got %v", stepName, s.ExpectedStatusCodes, resp.StatusCode)
 		return nil, fmt.Errorf("received invalid status code")
 	}
 
@@ -74,7 +75,7 @@ func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
 		log.Printf("[%v] Failed to convert body to json: %v", stepName, err.Error())
 		return nil, err
 	} else {
-		log.Printf("[%v] Got response", stepName)
+		log.Printf("[%v] Got response %v", stepName, resp.StatusCode)
 		if content == nil || s.BodySelector == nil {
 			return nil, nil
 		}

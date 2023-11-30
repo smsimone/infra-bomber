@@ -30,6 +30,10 @@
           "output": {
             "type": "string"
           },
+          "can_fail": {
+            "type": "boolean",
+            "default": false
+          },
           "request": {
             "type": "object",
             "oneOf": [
@@ -37,13 +41,27 @@
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
+                  "flow": {
+                    "type": "string",
+                    "description": "Path that points to an existent flow to call it"
+                  },
+                  "environment": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "patternProperties": {
+                      ".*": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
                   "method": {
-                    "enum": [
-                      "GET",
-                      "POST",
-                      "PUT",
-                      "DELETE"
-                    ]
+                    "enum": ["GET", "POST", "PUT", "DELETE"]
                   },
                   "path": {
                     "type": "string"
@@ -62,8 +80,12 @@
                   "bodySelector": {
                     "type": "string"
                   },
-                  "expectedStatusCode": {
-                    "type": "integer"
+                  "expectedStatusCodes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "integer"
+                    }
                   }
                 }
               },
@@ -100,4 +122,3 @@
     }
   }
 }
-

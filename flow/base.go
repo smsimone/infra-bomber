@@ -1,12 +1,13 @@
-package blocks
+package flow
 
 import (
 	"context"
 	"fmt"
-	"it.toduba/bomber/utils"
 	"log"
 	"regexp"
 	"strings"
+
+	"it.toduba/bomber/utils"
 )
 
 type BaseBlock interface {

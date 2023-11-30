@@ -4,20 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-
-	"it.toduba/bomber/blocks"
 )
 
 type Item struct {
-	Name    string           `yaml:"name"`
-	Request blocks.BaseBlock `yaml:"request"`
-	Output  *string          `yaml:"output"`
+	Request BaseBlock `yaml:"request"`
+	Output  *string   `yaml:"output"`
+	Name    string    `yaml:"name"`
+	CanFail bool      `yaml:"can_fail"`
 }
 
 func (i *Item) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	generic := new(map[string]interface{})
 	if err := unmarshal(generic); err != nil {
-		fmt.Printf("Failed to unmarshal item to map interface: %v", err.Error())
+		log.Printf("Failed to unmarshal item to map interface: %v", err.Error())
 		return err
 	}
 
@@ -27,18 +26,32 @@ func (i *Item) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		i.Output = &tmp
 	}
 
+	if val, ok := (*generic)["can_fail"]; ok {
+		tmp := val.(bool)
+		i.CanFail = tmp
+	} else {
+		i.CanFail = false
+	}
+
 	request := (*generic)["request"].(map[interface{}]interface{})
 
-	var block blocks.BaseBlock
+	var block BaseBlock
 	if _, ok := request["command"]; ok {
-		tmp := new(blocks.ScriptBlock)
+		tmp := new(ScriptBlock)
 		if err := convertToObj(request, tmp); err != nil {
 			log.Printf("Failed to convert to script block: %v", err.Error())
 			return err
 		}
 		block = tmp
 	} else if _, ok := request["method"]; ok {
-		tmp := new(blocks.HttpBlock)
+		tmp := new(HttpBlock)
+		if err := convertToObj(request, tmp); err != nil {
+			log.Printf("Failed to convert to http block: %v", err.Error())
+			return err
+		}
+		block = tmp
+	} else if _, ok := request["flow"]; ok {
+		tmp := new(SubFlow)
 		if err := convertToObj(request, tmp); err != nil {
 			log.Printf("Failed to convert to http block: %v", err.Error())
 			return err
@@ -79,11 +92,14 @@ func convert(m map[interface{}]interface{}) map[string]interface{} {
 		case map[interface{}]interface{}:
 			res[fmt.Sprint(k)] = convert(v2)
 		case []interface{}:
-			var data []map[string]interface{}
+			var data []interface{}
 			for _, item := range v2 {
 				switch v3 := item.(type) {
 				case map[interface{}]interface{}:
 					data = append(data, convert(v3))
+				case string:
+				case int:
+					data = append(data, v3)
 				default:
 					log.Fatalf("Invalid type: %+v", v3)
 				}

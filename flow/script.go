@@ -1,19 +1,20 @@
-package blocks
+package flow
 
 import (
 	"context"
 	"fmt"
-	"it.toduba/bomber/utils"
 	"log"
 	"os/exec"
 	"strings"
+
+	"it.toduba/bomber/utils"
 )
 
 type ScriptBlock struct {
 	BaseBlock `yaml:"-"`
 	Env       *map[string]string `yaml:"env"`
 	Command   string             `yaml:"command"`
-	Args      []string           `yaml:"string"`
+	Args      []string           `yaml:"args"`
 }
 
 func (s *ScriptBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
@@ -25,6 +26,7 @@ func (s *ScriptBlock) Exec(ctx context.Context) (*map[string]interface{}, error)
 	command := exec.Command(s.Command)
 	for _, arg := range s.Args {
 		command.Args = append(command.Args, ReplacePlaceholders(ctxVal, arg))
+		log.Printf("Adding arg %v", arg)
 	}
 
 	if s.Env != nil {

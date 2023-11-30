@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"fmt"
 	"log"
 
 	"it.toduba/bomber/flow"
@@ -26,9 +25,5 @@ func (t *Task) Execute() error {
 		log.Printf("Failed to parse flow: %v\n", err.Error())
 	}
 
-	if err := f.Execute((*t).Input); err != nil {
-		fmt.Printf("Failed to execute task: %v\n", err.Error())
-		return err
-	}
-	return nil
+	return f.Execute((*t).Input)
 }
