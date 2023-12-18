@@ -26,7 +26,6 @@ func (s *ScriptBlock) Exec(ctx context.Context) (*map[string]interface{}, error)
 	command := exec.Command(s.Command)
 	for _, arg := range s.Args {
 		command.Args = append(command.Args, ReplacePlaceholders(ctxVal, arg))
-		log.Printf("Adding arg %v", arg)
 	}
 
 	if s.Env != nil {
@@ -36,7 +35,7 @@ func (s *ScriptBlock) Exec(ctx context.Context) (*map[string]interface{}, error)
 	}
 	out, err := command.Output()
 	if err != nil {
-		log.Fatalf("[%v] Failed to execute command: %v", stepName, err.Error())
+		log.Fatalf("[%v] Failed to execute command: %v -> %v", stepName, err.Error(), command.Err)
 		return nil, err
 	}
 

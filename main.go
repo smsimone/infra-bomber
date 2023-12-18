@@ -21,16 +21,15 @@ func main() {
 			q.MaxExecutions = f.Jobs
 		},
 		func(q *queue.Queue) {
-			for _, t := range GetTasks(*f) {
+			tasks := GetTasks(*f)
+			for _, t := range tasks {
 				q.AddTask(&t)
 			}
 		},
 	)
 
 	log.Printf("Should run %v iterations\n", len(q.Tasks))
-
-	q.Start()
-	q.Wait()
+	q.StartAndWait()
 }
 
 func GetTasks(f utils.ProgramArgs) []queue.BaseTask {

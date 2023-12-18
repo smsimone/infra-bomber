@@ -13,9 +13,15 @@ type Task struct {
 }
 
 func NewTask(flowFile string, input *map[string]string) *Task {
+	cloned := map[string]string{}
+
+	for key, value := range *input {
+		cloned[key] = value
+	}
+
 	return &Task{
 		FlowFile: flowFile,
-		Input:    input,
+		Input:    &cloned,
 	}
 }
 

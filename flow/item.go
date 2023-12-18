@@ -130,6 +130,7 @@ func convert(m map[interface{}]interface{}) map[string]interface{} {
 				case map[interface{}]interface{}:
 					data = append(data, convert(v3))
 				case string:
+					data = append(data, v3)
 				case int:
 					data = append(data, v3)
 				default:

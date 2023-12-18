@@ -3,6 +3,7 @@ package queue
 import (
 	"fmt"
 	"log"
+	"sync"
 )
 
 type Queue struct {
@@ -10,6 +11,7 @@ type Queue struct {
 	Tasks            []BaseTask
 	currentlyRunning int
 	MaxExecutions    int
+	queueMutex       sync.Mutex
 }
 
 type AddProp func(q *Queue)
@@ -21,6 +23,7 @@ func (q *Queue) Initialize(props ...AddProp) {
 	}
 
 	q.onRunningChange = make(chan int, q.MaxExecutions)
+	q.queueMutex = sync.Mutex{}
 }
 
 // AddTask appends a new task t into the queue
@@ -30,6 +33,9 @@ func (q *Queue) AddTask(t *BaseTask) {
 
 // popTask Returns the first task in queue. Returns nil if empty
 func (q *Queue) popTask() *BaseTask {
+	q.queueMutex.Lock()
+	defer q.queueMutex.Unlock()
+
 	if len(q.Tasks) == 0 {
 		return nil
 	}
@@ -59,8 +65,6 @@ func (q *Queue) runNextTask() error {
 		}
 	}
 
-	log.Printf("Currently running %v jobs\n", q.currentlyRunning)
-
 	t := q.popTask()
 	if t == nil {
 		return fmt.Errorf("queue has no tasks in it")
@@ -72,10 +76,17 @@ func (q *Queue) runNextTask() error {
 			q.onRunningChange <- q.currentlyRunning
 		}()
 
-		_ = (*task).Execute()
+		if task != nil {
+			_ = (*task).Execute()
+		}
 	}(t)
 
 	return nil
+}
+
+func (q *Queue) StartAndWait() {
+	q.Start()
+	q.Wait()
 }
 
 // Start Starts to execute all tasks

@@ -57,9 +57,6 @@ func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
 
 	if err != nil {
 		log.Printf("[%v] Failed to send http request: %v", stepName, err.Error())
@@ -67,6 +64,12 @@ func (s *HttpBlock) Exec(ctx context.Context) (*map[string]interface{}, error) {
 	} else if !slices.Contains(s.ExpectedStatusCodes, resp.StatusCode) {
 		log.Printf("[%v] Received invalid status code: expected %v - got %v", stepName, s.ExpectedStatusCodes, resp.StatusCode)
 		return nil, fmt.Errorf("received invalid status code")
+	}
+
+	if resp.Body != nil {
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
 	}
 
 	var j interface{}
